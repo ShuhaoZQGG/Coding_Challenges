@@ -23,28 +23,7 @@ func main() {
 
 	// fmt.Println(fmt.Sprintf("%v", args))
 	if len(args) == 1 {
-		var numberOfLines int64
-		var numberOfWords int64
-		var numberOfBytes int64
-		var numberOfChars int64
-		for {
-			input, err := reader.ReadBytes('\n')
-			if err == io.EOF {
-				break
-			}
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Error reading from stdin: %v\n", err)
-				break
-			}
-
-			numberOfLines += 1
-			numberOfBytes += getNumberOfBytes(input)
-
-			numberOfWords += getNumberOfWordsFromBytes(input)
-			numberOfChars += getNumberOfCharsFromBytes(input)
-		}
-
-		outputString = format(numberOfLines, numberOfBytes, numberOfWords, numberOfChars+1)
+		outputString = analyzeStdIn(reader)
 		fmt.Println(outputString)
 	} else if len(args) == 2 {
 		arg1 := args[1]
@@ -54,14 +33,12 @@ func main() {
 			_, err := getFile(arg1)
 			if err != nil {
 				flag = arg1
-				var charsCount int64
 
 				for {
 					input, err := reader.ReadBytes('\n') // Reads until the newline or EOF
 					if err == io.EOF {
 						if flag == "-m" {
-							charsCount += 1
-							outputNumber = charsCount
+							outputNumber += 1
 						}
 						fmt.Println("reaching end of the file")
 						break // Exit the loop on EOF
@@ -80,8 +57,7 @@ func main() {
 						outputNumber += getNumberOfWordsFromBytes(input)
 						break
 					case "-m":
-						charsCount += getNumberOfCharsFromBytes(input)
-						outputNumber = charsCount
+						outputNumber += getNumberOfCharsFromBytes(input)
 						break
 					default:
 						gethelpMessage()
