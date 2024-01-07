@@ -11,6 +11,7 @@ import (
 func Serialize[T any](message T) (string, error) {
 	serializedOutput := ""
 	switch v := any(message).(type) {
+
 	case models.SimpleString:
 		serializedOutput = SerializeSimpleStrings(v.Message)
 	case models.BulkString:
@@ -21,6 +22,14 @@ func Serialize[T any](message T) (string, error) {
 		serializedOutput = SerializeArrays(v)
 	case int64:
 		serializedOutput = SerializeIntegers(v)
+	case int32:
+		serializedOutput = SerializeIntegers(int64(v))
+	case int16:
+		serializedOutput = SerializeIntegers(int64(v))
+	case int8:
+		serializedOutput = SerializeIntegers(int64(v))
+	case int:
+		serializedOutput = SerializeIntegers(int64(v))
 	case nil:
 		serializedOutput = SerializeBulkStringsForNull()
 	default:
@@ -61,17 +70,10 @@ func SerializeErrors(message string) string {
 
 func SerializeIntegers(message int64) string {
 	prefix := constants.INTEGERS_PREFIX
-	var sign string
-	if message > 0 {
-		sign = "+"
-	} else if message < 0 {
-		sign = "-"
-	} else {
-		sign = ""
-	}
+
 	crlf := constants.CRLF
 
-	return fmt.Sprintf("%s%s%d%s", prefix, sign, message, crlf)
+	return fmt.Sprintf("%s%d%s", prefix, message, crlf)
 }
 
 func SerializeArrays(messages []any) string {
