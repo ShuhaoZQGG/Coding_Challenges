@@ -1,6 +1,7 @@
 package utils_test
 
 import (
+	"fmt"
 	"testing"
 
 	"github.com/redis-mock/models"
@@ -100,20 +101,106 @@ func Test_RespParser_Serialize_Arrays(t *testing.T) {
 }
 
 func Test_RespParser_Deserialize_Simple_Strings(t *testing.T) {
+	inputs := []string{"+OK\r\n", "+hello world\r\n"}
+	expectedResults := []string{"OK", "hello world"}
+	for i, v := range inputs {
+		actualResult, err := utils.Deserialize(v)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+		expectedResult := expectedResults[i]
+		if expectedResult != actualResult {
+			t.Fatalf("expectedResult does not match actualResult, %v with length %v vs %v with length %v",
+				expectedResult, len(expectedResult), actualResult, len(actualResult.(string)))
+		}
+	}
 }
 
 func Test_RespParser_Deserialize_Bulk_Strings(t *testing.T) {
-
+	inputs := []string{"$5\r\nhello\r\n", "$0\r\n\r\n", "$2\r\n-1\r\n"}
+	expectedResults := []string{"hello", "", "-1"}
+	for i, v := range inputs {
+		actualResult, err := utils.Deserialize(v)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+		expectedResult := expectedResults[i]
+		if expectedResult != actualResult {
+			t.Fatalf("expectedResult does not match actualResult, %v with length %v vs %v with length %v",
+				expectedResult, len(expectedResult), actualResult, len(actualResult.(string)))
+		}
+	}
 }
 
 func Test_RespParser_Deserialize_integers(t *testing.T) {
-
+	inputs := []string{":12\r\n", ":5\r\n", ":-7\r\n"}
+	expectedResults := []int64{12, 5, -7}
+	for i, v := range inputs {
+		actualResult, err := utils.Deserialize(v)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+		expectedResult := expectedResults[i]
+		if expectedResult != actualResult {
+			t.Fatalf("expectedResult does not match actualResult, %v vs %v",
+				expectedResult, actualResult)
+		}
+	}
 }
 
 func Test_RespParser_Deserialize_Errors(t *testing.T) {
-
+	inputs := []string{"-Error message\r\n", "-ERR unknown command 'asdf'\r\n", "-WRONGTYPE Operation against a key holding the wrong kind of value\r\n"}
+	expectedResults := []string{"Error message", "ERR unknown command 'asdf'", "WRONGTYPE Operation against a key holding the wrong kind of value"}
+	for i, v := range inputs {
+		actualResult, err := utils.Deserialize(v)
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+		expectedResult := expectedResults[i]
+		if expectedResult != actualResult {
+			t.Fatalf("expectedResult does not match actualResult, %v with length %v vs %v with length %v",
+				expectedResult, len(expectedResult), actualResult, len(actualResult.(string)))
+		}
+	}
 }
 
 func Test_RespParser_Deserialize_Arrays(t *testing.T) {
-
+	inputs := []any{
+		"*0\r\n",
+		"*2\r\n$5\r\nhello\r\n$5\r\nworld\r\n",
+		"*1\r\n$4\r\nping\r\n",
+		"*2\r\n$3\r\nget\r\n$3\r\nkey\r\n",
+		"*2\r\n$4\r\necho\r\n$11\r\nhello world\r\n",
+		"*5\r\n:1\r\n:2\r\n:3\r\n:4\r\n$5\r\nhello\r\n",
+	}
+	expectedResults := [][]any{
+		{},
+		{"hello", "world"},
+		{"ping"},
+		{"get", "key"},
+		{"echo", "hello world"},
+		{int64(1), int64(2), int64(3), int64(4), "hello"},
+	}
+	for i, v := range inputs {
+		result, err := utils.Deserialize(v.(string))
+		if err != nil {
+			t.Fatalf("%v", err)
+		}
+		actualResult, ok := result.([]any)
+		if !ok {
+			t.Fatal("actual result does not have type []any")
+		}
+		expectedResult := expectedResults[i]
+		if len(expectedResult) == 0 {
+			if len(actualResult) != 0 {
+				t.Fatal(fmt.Sprintf("Expected result %v and actual result %v do not match", expectedResult, actualResult))
+			}
+		} else {
+			for i, v := range expectedResult {
+				if v != actualResult[i] {
+					t.Fatal(fmt.Sprintf("Expected result %v and actual result %v do not match", v, actualResult[i]))
+				}
+			}
+		}
+	}
 }
