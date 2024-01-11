@@ -43,25 +43,26 @@ func DeserializeBulkStrings(message string) string {
 	return result
 }
 
-func DeserializeIntegers(message string) int64 {
+func DeserializeIntegers(message string) string {
 	crlf := constants.CRLF
 	message = strings.TrimSuffix(message, crlf)
 	result, _ := strconv.Atoi(message[1:])
-	return int64(result)
+	resultInString := strconv.Itoa(int(result))
+	return resultInString
 }
 
 func DeserializeErrors(message string) string {
 	return DeserializeSimpleStrings(message)
 }
 
-func DeserializeArrays(message string) []any {
+func DeserializeArrays(message string) []string {
 	if message == "*0\r\n" {
 		return nil
 	}
 	crlf := constants.CRLF
 	messageInSlices := strings.Split(message, crlf)
 
-	output := make([]any, 0)
+	output := make([]string, 0)
 	counter := 1
 	for counter < len(messageInSlices) {
 		if len(messageInSlices[counter]) == 0 {
@@ -78,11 +79,7 @@ func DeserializeArrays(message string) []any {
 			}
 
 			bulkString := eachString + crlf + messageInSlices[counter+1] + crlf
-			bulkStringInOutput, err := Deserialize(bulkString)
-			if err != nil {
-				fmt.Println("Error deserializing bulk string:", err)
-				return nil
-			}
+			bulkStringInOutput := DeserializeBulkStrings(bulkString)
 			output = append(output, bulkStringInOutput)
 			counter += 2
 		} else {
@@ -91,7 +88,11 @@ func DeserializeArrays(message string) []any {
 				fmt.Println("Error deserializing element:", err)
 				return nil
 			}
-			output = append(output, eachElementInOutput)
+			eachElementInOutputInString, ok := eachElementInOutput.(string)
+			if !ok {
+				fmt.Printf("Error transforming eachElementInOutput from type any to string")
+			}
+			output = append(output, eachElementInOutputInString)
 			counter += 1
 		}
 	}
