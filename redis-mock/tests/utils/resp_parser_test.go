@@ -134,7 +134,7 @@ func Test_RespParser_Deserialize_Bulk_Strings(t *testing.T) {
 
 func Test_RespParser_Deserialize_integers(t *testing.T) {
 	inputs := []string{":12\r\n", ":5\r\n", ":-7\r\n"}
-	expectedResults := []int64{12, 5, -7}
+	expectedResults := []string{"12", "5", "-7"}
 	for i, v := range inputs {
 		actualResult, err := utils.Deserialize(v)
 		if err != nil {
@@ -179,14 +179,14 @@ func Test_RespParser_Deserialize_Arrays(t *testing.T) {
 		{"ping"},
 		{"get", "key"},
 		{"echo", "hello world"},
-		{int64(1), int64(2), int64(3), int64(4), "hello"},
+		{"1", "2", "3", "4", "hello"},
 	}
 	for i, v := range inputs {
 		result, err := utils.Deserialize(v.(string))
 		if err != nil {
 			t.Fatalf("%v", err)
 		}
-		actualResult, ok := result.([]any)
+		actualResult, ok := result.([]string)
 		if !ok {
 			t.Fatal("actual result does not have type []any")
 		}
