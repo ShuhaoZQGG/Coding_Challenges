@@ -21,7 +21,6 @@ func StartServer() {
 	limitChan := make(chan struct{}, 100)
 	for {
 		conn, err := ln.Accept()
-		fmt.Println(":: Got connected, ", conn.RemoteAddr())
 		if err != nil {
 			fmt.Printf("::Error accepting conns: %v", err)
 			continue
@@ -64,7 +63,6 @@ func decodeRESP(conn io.Reader) ([]string, error) {
 		value = []string{}
 	}
 	valueInSlices, ok := value.([]string)
-	fmt.Println(valueInSlices)
 	if !ok {
 		return nil, fmt.Errorf("Error: expeceted a slice of strings")
 	}
