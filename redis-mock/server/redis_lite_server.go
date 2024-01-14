@@ -81,24 +81,7 @@ func handleResponse(input []string, conn io.Writer, store *models.Store) {
 	// Converting the command to lower case for case-insensitive comparison
 	command := strings.ToLower(input[0])
 	args := input[1:]
-	switch command {
-	case "ping":
-		// Respond with "PONG" only if the command is "ping"
-		response, err = utils.Serialize[models.SimpleString](*models.NewSimpleString("PONG"))
-	case "set":
-		store.Set(args[0], args[1])
-		response, err = utils.Serialize[models.SimpleString](*models.NewSimpleString("OK"))
-	case "get":
-		getResult, exist := store.Get(args[0])
-		if !exist {
-			response = utils.SerializeErrors(fmt.Sprintf("get key %v does not exist", args[0]))
-		} else {
-			response, err = utils.Serialize[models.SimpleString](*models.NewSimpleString(getResult))
-		}
-	default:
-		// For any other command, respond with "OK"
-		response, err = utils.Serialize[models.SimpleString](*models.NewSimpleString("OK"))
-	}
+	response, err = utils.HandleCommand(command, args, store)
 
 	if err != nil {
 		fmt.Println("Error while serializing message:", err)

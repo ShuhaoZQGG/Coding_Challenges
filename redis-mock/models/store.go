@@ -51,3 +51,16 @@ func (s *Store) Get(key string) (string, bool) {
 	val, ok := shard.data[key]
 	return val, ok
 }
+
+func (s *Store) Del(key string) bool {
+	_, ok := s.Get(key)
+	if !ok {
+		return ok
+	}
+
+	shard := s.getShard(key)
+	shard.Lock()
+	defer shard.Unlock()
+	delete(shard.data, key)
+	return true
+}
