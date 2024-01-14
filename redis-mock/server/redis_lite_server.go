@@ -18,31 +18,24 @@ func StartServer() {
 	defer ln.Close()
 	fmt.Println("Redis-lite server started on port 6379")
 	store := models.NewStore()
+	limitChan := make(chan struct{}, 100)
 	for {
 		conn, err := ln.Accept()
 		fmt.Println(":: Got connected, ", conn.RemoteAddr())
 		if err != nil {
 			fmt.Printf("::Error accepting conns: %v", err)
+			continue
 		}
 
-		go handleConnection(conn, store)
+		limitChan <- struct{}{}
+		go handleConnection(conn, store, limitChan)
 	}
 }
 
-func handleConnection(conn net.Conn, store *models.Store) {
+func handleConnection(conn net.Conn, store *models.Store, limitChan <-chan struct{}) {
 
 	defer conn.Close()
-	intialResponse, err := utils.Serialize[models.SimpleString](*models.NewSimpleString("OK"))
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-	_, err = conn.Write([]byte(intialResponse))
-	if err != nil {
-		fmt.Println(":: Error sending initial response to client: ", err.Error())
-		return
-	}
-
+	defer func() { <-limitChan }()
 	for {
 		value, err := decodeRESP(conn)
 		if err != nil {
@@ -67,17 +60,17 @@ func decodeRESP(conn io.Reader) ([]string, error) {
 	}
 	message := strings.TrimSpace(string(msg[:msglen]))
 	value, err = utils.Deserialize(message)
-	fmt.Println(value)
+	if value == nil {
+		value = []string{}
+	}
 	valueInSlices, ok := value.([]string)
+	fmt.Println(valueInSlices)
 	if !ok {
 		return nil, fmt.Errorf("Error: expeceted a slice of strings")
 	}
-	fmt.Println(":: Parsed: ", valueInSlices)
 	return valueInSlices, nil
 }
 
-// TODO: FIX ISSUE: It seems the response back to cli only takes effect after the next command
-// response is one time slower than expected
 func handleResponse(input []string, conn io.Writer, store *models.Store) {
 	var response string
 	var err error
@@ -89,11 +82,21 @@ func handleResponse(input []string, conn io.Writer, store *models.Store) {
 
 	// Converting the command to lower case for case-insensitive comparison
 	command := strings.ToLower(input[0])
-
+	args := input[1:]
 	switch command {
 	case "ping":
 		// Respond with "PONG" only if the command is "ping"
 		response, err = utils.Serialize[models.SimpleString](*models.NewSimpleString("PONG"))
+	case "set":
+		store.Set(args[0], args[1])
+		response, err = utils.Serialize[models.SimpleString](*models.NewSimpleString("OK"))
+	case "get":
+		getResult, exist := store.Get(args[0])
+		if !exist {
+			response = utils.SerializeErrors(fmt.Sprintf("get key %v does not exist", args[0]))
+		} else {
+			response, err = utils.Serialize[models.SimpleString](*models.NewSimpleString(getResult))
+		}
 	default:
 		// For any other command, respond with "OK"
 		response, err = utils.Serialize[models.SimpleString](*models.NewSimpleString("OK"))
@@ -103,8 +106,6 @@ func handleResponse(input []string, conn io.Writer, store *models.Store) {
 		fmt.Println("Error while serializing message:", err)
 		return
 	}
-
-	fmt.Println("Response:", response)
 	_, err = conn.Write([]byte(response))
 	if err != nil {
 		fmt.Println("Error sending response:", err)
