@@ -59,8 +59,8 @@ func decodeRESP(conn io.Reader) ([]string, error) {
 	}
 	message := strings.TrimSpace(string(msg[:msglen]))
 	value, err = utils.Deserialize(message)
-	if value == nil {
-		value = []string{}
+	if err != nil {
+		return nil, err
 	}
 	valueInSlices, ok := value.([]string)
 	if !ok {

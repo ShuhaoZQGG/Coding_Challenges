@@ -13,6 +13,8 @@ func Deserialize(message string) (any, error) {
 	var result any
 	prefix := message[0:1]
 	switch prefix {
+	case "":
+		result = DeserializeArrays(message)
 	case constants.SIMPLE_STRINGS_PREFIX:
 		result = DeserializeSimpleStrings(message)
 	case constants.BULK_STRINGS_PREFIX:
@@ -56,8 +58,8 @@ func DeserializeErrors(message string) string {
 }
 
 func DeserializeArrays(message string) []string {
-	if message == "*0\r\n" {
-		return nil
+	if message == "*0\r\n" || message == "" {
+		return []string{}
 	}
 	crlf := constants.CRLF
 	messageInSlices := strings.Split(message, crlf)
@@ -88,10 +90,8 @@ func DeserializeArrays(message string) []string {
 				fmt.Println("Error deserializing element:", err)
 				return nil
 			}
-			eachElementInOutputInString, ok := eachElementInOutput.(string)
-			if !ok {
-				fmt.Printf("Error transforming eachElementInOutput from type any to string")
-			}
+			eachElementInOutputInString, _ := eachElementInOutput.(string)
+
 			output = append(output, eachElementInOutputInString)
 			counter += 1
 		}
