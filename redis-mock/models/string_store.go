@@ -6,7 +6,7 @@ import (
 
 const shardCount = 32
 
-type Store struct {
+type StringStore struct {
 	shards [shardCount]*shard
 }
 
@@ -15,15 +15,15 @@ type shard struct {
 	data map[string]string
 }
 
-func NewStore() *Store {
-	s := &Store{}
+func NewStringStore() *StringStore {
+	s := &StringStore{}
 	for i := 0; i < shardCount; i++ {
 		s.shards[i] = &shard{data: make(map[string]string)}
 	}
 	return s
 }
 
-func (s *Store) getShard(key string) *shard {
+func (s *StringStore) getShard(key string) *shard {
 	return s.shards[uint(fnv32(key)%shardCount)]
 }
 
@@ -37,14 +37,14 @@ func fnv32(key string) uint32 {
 	return hash
 }
 
-func (s *Store) Set(key, value string) {
+func (s *StringStore) StringStore(key, value string) {
 	shard := s.getShard(key)
 	shard.Lock()
 	defer shard.Unlock()
 	shard.data[key] = value
 }
 
-func (s *Store) Get(key string) (string, bool) {
+func (s *StringStore) Get(key string) (string, bool) {
 	shard := s.getShard(key)
 	shard.RLock()
 	defer shard.RUnlock()
@@ -52,7 +52,7 @@ func (s *Store) Get(key string) (string, bool) {
 	return val, ok
 }
 
-func (s *Store) Del(key string) bool {
+func (s *StringStore) Del(key string) bool {
 	_, ok := s.Get(key)
 	if !ok {
 		return ok

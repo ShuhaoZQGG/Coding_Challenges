@@ -4,13 +4,13 @@ import (
 	"github.com/redis-mock/models"
 )
 
-func HandleCommand(command string, args []string, store *models.Store) (string, error) {
+func HandleCommand(command string, args []string, store *models.StringStore) (string, error) {
 	var response string
 	var err error
 	switch command {
 	case "ping":
 		response, err = HandlePing(args, store)
-	case "set":
+	case "store":
 		response, err = HandleSet(args, store)
 	case "get":
 		response, err = HandleGet(args, store)
@@ -18,6 +18,10 @@ func HandleCommand(command string, args []string, store *models.Store) (string, 
 		response, err = HandleExists(args, store)
 	case "del":
 		response, err = HandleDelete(args, store)
+	case "incr":
+		response, err = HandleIncr(args, store)
+	case "decr":
+		response, err = HandleDecr(args, store)
 	default:
 		// For any other command, respond with "OK"
 		response, err = HandleDefault(args, store)

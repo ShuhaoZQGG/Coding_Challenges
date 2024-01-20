@@ -17,7 +17,7 @@ func StartServer() {
 	}
 	defer ln.Close()
 	fmt.Println("Redis-lite server started on port 6379")
-	store := models.NewStore()
+	store := models.NewStringStore()
 	limitChan := make(chan struct{}, 100)
 	for {
 		conn, err := ln.Accept()
@@ -31,7 +31,7 @@ func StartServer() {
 	}
 }
 
-func handleConnection(conn net.Conn, store *models.Store, limitChan <-chan struct{}) {
+func handleConnection(conn net.Conn, store *models.StringStore, limitChan <-chan struct{}) {
 
 	defer conn.Close()
 	defer func() { <-limitChan }()
@@ -69,7 +69,7 @@ func decodeRESP(conn io.Reader) ([]string, error) {
 	return valueInSlices, nil
 }
 
-func handleResponse(input []string, conn io.Writer, store *models.Store) {
+func handleResponse(input []string, conn io.Writer, store *models.StringStore) {
 	var response string
 	var err error
 
