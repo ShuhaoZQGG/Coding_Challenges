@@ -1,0 +1,4 @@
+aof:
+  on: true
+  location: redis_default.aof
+  appendfsync: always
