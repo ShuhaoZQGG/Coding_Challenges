@@ -10,7 +10,7 @@ func HandleCommand(command string, args []string, store *models.StringStore) (st
 	switch command {
 	case "ping":
 		response, err = HandlePing(args, store)
-	case "store":
+	case "set":
 		response, err = HandleSet(args, store)
 	case "get":
 		response, err = HandleGet(args, store)

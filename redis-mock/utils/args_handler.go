@@ -18,7 +18,7 @@ func HandlePing(args []string, store *models.StringStore) (response string, err 
 }
 
 func HandleSet(args []string, store *models.StringStore) (response string, err error) {
-	store.StringStore(args[0], args[1])
+	store.Set(args[0], args[1])
 	response, err = Serialize[models.SimpleString](*models.NewSimpleString("OK"))
 	return response, err
 }
@@ -89,7 +89,7 @@ func HandleIncr(args []string, store *models.StringStore) (response string, err 
 	}
 
 	valueInInt += 1
-	store.StringStore(key, strconv.Itoa(valueInInt))
+	store.Set(key, strconv.Itoa(valueInInt))
 	response = SerializeIntegers(int64(valueInInt))
 	return response, nil
 }
@@ -109,7 +109,7 @@ func HandleDecr(args []string, store *models.StringStore) (response string, err 
 	}
 
 	valueInInt -= 1
-	store.StringStore(key, strconv.Itoa(valueInInt))
+	store.Set(key, strconv.Itoa(valueInInt))
 	response = SerializeIntegers(int64(valueInInt))
 	return response, nil
 }

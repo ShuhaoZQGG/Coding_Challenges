@@ -18,6 +18,10 @@ func StartServer() {
 	defer ln.Close()
 	fmt.Println("Redis-lite server started on port 6379")
 	store := models.NewStringStore()
+	aof, err := models.NewAOF()
+	if err != nil {
+		fmt.Println("failed to create aof struct")
+	}
 	limitChan := make(chan struct{}, 100)
 	for {
 		conn, err := ln.Accept()
@@ -27,16 +31,16 @@ func StartServer() {
 		}
 
 		limitChan <- struct{}{}
-		go handleConnection(conn, store, limitChan)
+		go handleConnection(conn, store, aof, limitChan)
 	}
 }
 
-func handleConnection(conn net.Conn, store *models.StringStore, limitChan <-chan struct{}) {
+func handleConnection(conn net.Conn, store *models.StringStore, aof *models.AOF, limitChan <-chan struct{}) {
 
 	defer conn.Close()
 	defer func() { <-limitChan }()
 	for {
-		value, err := decodeRESP(conn)
+		value, err := decodeRESP(conn, aof)
 		if err != nil {
 			if err == io.EOF {
 				return
@@ -50,13 +54,14 @@ func handleConnection(conn net.Conn, store *models.StringStore, limitChan <-chan
 	}
 }
 
-func decodeRESP(conn io.Reader) ([]string, error) {
+func decodeRESP(conn io.Reader, aof *models.AOF) ([]string, error) {
 	msg := make([]byte, 1024)
 	var value any
 	msglen, err := conn.Read(msg)
 	if err != nil {
 		return nil, err
 	}
+	aof.Write(string(msg[:msglen]))
 	message := strings.TrimSpace(string(msg[:msglen]))
 	value, err = utils.Deserialize(message)
 	if err != nil {
