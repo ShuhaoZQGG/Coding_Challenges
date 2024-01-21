@@ -12,9 +12,9 @@ type ListStore struct {
 	data  map[string]list.List
 }
 
-func NewListStore(key string, value list.List) *ListStore {
+func NewListStore() *ListStore {
 	return &ListStore{
-		data: nil,
+		data: make(map[string]list.List),
 	}
 }
 
@@ -25,7 +25,6 @@ func (store *ListStore) Lget(key string) (list.List, bool) {
 	return value, ok
 }
 
-// /	<TODO>
 // /	<description>
 // /	Implement Lrange function to return all the elements within the range of start and stop position
 // /	</description>
@@ -44,12 +43,49 @@ func (store *ListStore) Lget(key string) (list.List, bool) {
 // / (2) "value2"\r\n
 // / (3) "value3"\r\n
 // / </example>
-func (store *ListStore) Lrange(key string, start int, stop int) (string, error) {
+func (store *ListStore) Lrange(key string, start int, stop int) (output []string, err error) {
 	value, ok := store.Lget(key)
 	if !ok {
-		return "", errors.New(fmt.Sprintf("key %s does not exist", key))
+		return nil, errors.New(fmt.Sprintf("key %s does not exist", key))
 	}
-	panic("To implment!")
+	length := value.Len()
+
+	// -1 => the last element = len + (-1) = len - 1
+	if start < 0 {
+		start = length + start
+	}
+
+	if stop < 0 {
+		stop = length + stop
+	}
+
+	// check if start is still less than 0 (client input is problematic)
+	if start < 0 {
+		start = 0
+	}
+
+	if stop < start {
+		start, stop = stop, start
+	}
+
+	if stop >= length {
+		stop = length - 1
+	}
+
+	i := 0
+	for e := value.Front(); e != nil; e = e.Next() {
+		if i >= start && i <= stop {
+			output = append(output, e.Value.(string))
+		}
+
+		if i > stop {
+			break
+		}
+
+		i++
+	}
+
+	return output, nil
 }
 
 func (store *ListStore) Lpush(key string, values []string) {
@@ -58,9 +94,12 @@ func (store *ListStore) Lpush(key string, values []string) {
 		value = *list.New().Init()
 	}
 
+	for _, val := range values {
+		value.PushFront(val)
+	}
+
 	store.state.Lock()
 	defer store.state.Unlock()
-	for _, val := range values {
-		value.InsertBefore(val, value.Front())
-	}
+
+	store.data[key] = value
 }
