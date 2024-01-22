@@ -74,6 +74,7 @@ func (rs *RedisServer) HandleConnection(conn net.Conn, limitChan <-chan struct{}
 }
 
 func (rs *RedisServer) decodeRESP(conn net.Conn) ([]string, error) {
+	deserializer := new(models.RespDeserializer)
 	msg := make([]byte, 1024)
 	var value any
 	msglen, err := conn.Read(msg)
@@ -82,7 +83,7 @@ func (rs *RedisServer) decodeRESP(conn net.Conn) ([]string, error) {
 	}
 	rs.aof.Write(string(msg[:msglen]))
 	message := strings.TrimSpace(string(msg[:msglen]))
-	value, err = utils.Deserialize(message)
+	value, err = deserializer.Deserialize(message)
 	if err != nil {
 		return nil, err
 	}
