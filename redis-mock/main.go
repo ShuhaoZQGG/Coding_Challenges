@@ -5,6 +5,6 @@ import (
 )
 
 func main() {
-	// You can use print statements as follows for debugging, they'll be visible when running tests.
-	server.StartServer()
+	server := server.NewRedisServer()
+	server.Start()
 }

@@ -8,8 +8,8 @@ import (
 )
 
 type ListStore struct {
-	state sync.RWMutex
-	data  map[string]list.List
+	sync.RWMutex
+	data map[string]list.List
 }
 
 func NewListStore() *ListStore {
@@ -19,8 +19,8 @@ func NewListStore() *ListStore {
 }
 
 func (store *ListStore) Lget(key string) (list.List, bool) {
-	store.state.RLock()
-	defer store.state.RUnlock()
+	store.RLock()
+	defer store.RUnlock()
 	value, ok := store.data[key]
 	return value, ok
 }
@@ -98,8 +98,8 @@ func (store *ListStore) Lpush(key string, values []string) {
 		value.PushFront(val)
 	}
 
-	store.state.Lock()
-	defer store.state.Unlock()
+	store.Lock()
+	defer store.Unlock()
 
 	store.data[key] = value
 }

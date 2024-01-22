@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"sync"
 )
 
@@ -42,7 +41,6 @@ func (s *StringStore) Set(key, value string) {
 	shard := s.getShard(key)
 	shard.Lock()
 	defer shard.Unlock()
-	fmt.Println(fmt.Sprintf("setting %s %s", key, value))
 	shard.data[key] = value
 }
 

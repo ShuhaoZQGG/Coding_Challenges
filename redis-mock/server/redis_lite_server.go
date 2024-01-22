@@ -10,19 +10,38 @@ import (
 	"github.com/redis-mock/utils"
 )
 
-func StartServer() {
+type Server interface {
+	Start()
+	HandleConnection()
+	HandleResponse()
+}
+
+type RedisServer struct {
+	aof   *models.AOF
+	store *models.StringStore
+}
+
+func NewRedisServer() *RedisServer {
+	aof, _ := models.NewAOF()
+	store := models.NewStringStore()
+	return &RedisServer{
+		aof:   aof,
+		store: store,
+	}
+}
+
+func (rs *RedisServer) Start() {
 	ln, err := net.Listen("tcp", ":6379")
 	if err != nil {
 		panic(err)
 	}
 	defer ln.Close()
 	fmt.Println("Redis-lite server started on port 6379")
-	store := models.NewStringStore()
-	aof, err := models.NewAOF()
 	if err != nil {
 		fmt.Println("failed to create aof struct")
 	}
-	limitChan := make(chan struct{}, 100)
+	limitChan := make(chan struct{}, 50)
+
 	for {
 		conn, err := ln.Accept()
 		if err != nil {
@@ -31,16 +50,16 @@ func StartServer() {
 		}
 
 		limitChan <- struct{}{}
-		go handleConnection(conn, store, aof, limitChan)
+		go rs.HandleConnection(conn, limitChan)
 	}
 }
 
-func handleConnection(conn net.Conn, store *models.StringStore, aof *models.AOF, limitChan <-chan struct{}) {
+func (rs *RedisServer) HandleConnection(conn net.Conn, limitChan <-chan struct{}) {
 
 	defer conn.Close()
 	defer func() { <-limitChan }()
 	for {
-		value, err := decodeRESP(conn, aof)
+		value, err := rs.decodeRESP(conn)
 		if err != nil {
 			if err == io.EOF {
 				return
@@ -50,18 +69,18 @@ func handleConnection(conn net.Conn, store *models.StringStore, aof *models.AOF,
 			}
 		}
 
-		handleResponse(value, conn, store)
+		rs.handleResponse(conn, value)
 	}
 }
 
-func decodeRESP(conn io.Reader, aof *models.AOF) ([]string, error) {
+func (rs *RedisServer) decodeRESP(conn net.Conn) ([]string, error) {
 	msg := make([]byte, 1024)
 	var value any
 	msglen, err := conn.Read(msg)
 	if err != nil {
 		return nil, err
 	}
-	aof.Write(string(msg[:msglen]))
+	rs.aof.Write(string(msg[:msglen]))
 	message := strings.TrimSpace(string(msg[:msglen]))
 	value, err = utils.Deserialize(message)
 	if err != nil {
@@ -74,7 +93,7 @@ func decodeRESP(conn io.Reader, aof *models.AOF) ([]string, error) {
 	return valueInSlices, nil
 }
 
-func handleResponse(input []string, conn io.Writer, store *models.StringStore) {
+func (rs *RedisServer) handleResponse(conn net.Conn, input []string) {
 	var response string
 	var err error
 
@@ -86,7 +105,7 @@ func handleResponse(input []string, conn io.Writer, store *models.StringStore) {
 	// Converting the command to lower case for case-insensitive comparison
 	command := strings.ToLower(input[0])
 	args := input[1:]
-	response, err = utils.HandleCommand(command, args, store)
+	response, err = utils.HandleCommand(command, args, rs.store)
 
 	if err != nil {
 		fmt.Println("Error while serializing message:", err)
